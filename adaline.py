@@ -39,16 +39,23 @@ def funcion_activacion(activacion,z):
         return np.tanh(z)
     else:
         return int(z>=0)
-    
+
+#Adaptar datos a la funcion de activacion
+def adaptar_datos(d,activacion):
+    if activacion=="tanh":
+        return np.where(d==0,-1,1)
+    else:
+        return d
+
 ##Datos de prueba
 #Input dataset
-x = np.array([[-1,-1],
-              [-1,1],
-              [1,-1],
+x = np.array([[0,0],
+              [0,1],
+              [1,0],
               [1,1]])
 # Target values
-d = np.array([-1, -1, -1, 1])
-
-history, w, bias = adaline(x, d, "sigmoid", 0.001)
+clases = np.array([0, 0, 0, 1])
+d=adaptar_datos(clases,"tanh")
+history, w, bias = adaline(x, d, "tanh", 0.001)
 print('weight :',w)
 print('Bias :',bias)
