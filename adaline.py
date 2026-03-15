@@ -17,10 +17,31 @@ def adaline(X,d,activacion):
     while True:
         global_error=False
         for i in range(len(X)):
+            #Calculo de la salida
+            z=np.dot(w,X[i])+bias
+            y_pred=funcion_activacion(activacion,z)
+            #Calculo del error
+            error=d[i]-y_pred
+            #Actualizacion de pesos y bias
+            w+=alpha*error*X[i]
+            bias+=alpha*error
             global_error=True
-        
+            if error!=0:
+                global_error=True
         history.append((epoch,w.copy(),bias))
+        if not global_error:
+            break
         
         epoch+=1
     
     return history
+
+
+##Funcion de activacion
+def funcion_activacion(activacion,z):
+    if activacion == "sigmoid":
+        return 1/(1+np.exp(-z))
+    elif activacion == "tanh":
+        return np.tanh(z)
+    else:
+        return int(z>=0)
