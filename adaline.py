@@ -1,8 +1,7 @@
 import numpy as np
-import matplotlib.pyplot as plt
 
 ## Adaline
-def adaline(X,d,activacion):
+def adaline(X,d,activacion,stop):
     #Inicializacion de pesos
     n_features=X.shape[1]
     bias=np.random.uniform(0,1)
@@ -12,29 +11,24 @@ def adaline(X,d,activacion):
     alpha=0.01
     epoch=1
     history=[]
-
+    Error=[stop+1]
     #Entrenamiento
-    while True:
-        global_error=False
-        for i in range(len(X)):
+    while Error[-1] > stop:
+        error=[]
+        for i in range(X.shape[0]):
             #Calculo de la salida
             z=np.dot(w,X[i])+bias
             y_pred=funcion_activacion(activacion,z)
-            #Calculo del error
-            error=d[i]-y_pred
             #Actualizacion de pesos y bias
-            w+=alpha*error*X[i]
-            bias+=alpha*error
-            global_error=True
-            if error!=0:
-                global_error=True
-        history.append((epoch,w.copy(),bias))
-        if not global_error:
-            break
-        
+            w+=alpha*(d[i]-y_pred)*X[i]
+            bias+=alpha*(d[i]-y_pred)
+            #Calculo del error
+            error.append((d[i]-y_pred)**2)
+        Error.append(sum(error))
+        history.append((epoch,w.copy(),bias,error))
         epoch+=1
     
-    return history
+    return history, w, bias
 
 
 ##Funcion de activacion
@@ -45,3 +39,16 @@ def funcion_activacion(activacion,z):
         return np.tanh(z)
     else:
         return int(z>=0)
+    
+##Datos de prueba
+#Input dataset
+x = np.array([[-1,-1],
+              [-1,1],
+              [1,-1],
+              [1,1]])
+# Target values
+d = np.array([-1, -1, -1, 1])
+
+history, w, bias = adaline(x, d, "sigmoid", 0.001)
+print('weight :',w)
+print('Bias :',bias)
