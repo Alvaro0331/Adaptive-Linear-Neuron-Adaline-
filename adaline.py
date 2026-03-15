@@ -2,11 +2,15 @@ import numpy as np
 
 ## Adaline
 def adaline(X,d,activacion,stop):
+    #Adaptar datos a la funcion de activacion
+    if activacion=="tanh":
+        d=np.where(d==0,-1,1)
     #Inicializacion de pesos
     n_features=X.shape[1]
     bias=np.random.uniform(0,1)
     w=np.random.uniform(0,1,n_features)
-
+    
+    
     #Hyperparametros
     alpha=0.01
     epoch=1
@@ -40,14 +44,7 @@ def funcion_activacion(activacion,z):
     else:
         return int(z>=0)
 
-#Adaptar datos a la funcion de activacion
-def adaptar_datos(d,activacion):
-    if activacion=="tanh":
-        return np.where(d==0,-1,1)
-    else:
-        return d
-
-##Datos de prueba
+""" ##Datos de prueba
 #Input dataset
 x = np.array([[0,0],
               [0,1],
@@ -55,7 +52,6 @@ x = np.array([[0,0],
               [1,1]])
 # Target values
 clases = np.array([0, 0, 0, 1])
-d=adaptar_datos(clases,"tanh")
-history, w, bias = adaline(x, d, "tanh", 0.001)
+history, w, bias = adaline(x, clases, "tanh", 0.001)
 print('weight :',w)
-print('Bias :',bias)
+print('Bias :',bias) """

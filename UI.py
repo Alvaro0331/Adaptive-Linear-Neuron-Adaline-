@@ -2,14 +2,15 @@ import matplotlib.pyplot as plt
 import matplotlib.widgets as widgets
 import numpy as np
 from matplotlib.backend_bases import MouseButton
-from adaline import train_perceptron
+from matplotlib.widgets import TextBox
+from adaline import adaline
 
 
 # Creacion de la figura
 def crear_figura():
     fig = plt.figure(figsize=(10, 6))
     ax = plt.axes([0.1, 0.1, 0.6, 0.8]) # [left, bottom, width, height]
-    ax.set_title("Práctica 2")
+    ax.set_title("Práctica 3: Adaline")
     ax.set_xlim(-10, 10)
     ax.set_ylim(-10, 10)
     ax.grid(True, linestyle='--', alpha=0.5)
@@ -18,14 +19,14 @@ def crear_figura():
     #Dibujo de ejes
     ax.axhline(y=0, color='black', linewidth=0.7)
     ax.axvline(x=0, color='black', linewidth=0.7)
-    global stateText
+    global stateText, errorText
     stateText = ax.text(0.02, 0.95, "", transform=ax.transAxes)
-
+    errorText = ax.text(0.02, 0.90, "", transform=ax.transAxes)
     
     #Leyenda
     leyenda = [
-        plt.Line2D([0], [0], marker='o', color='w', label='Clase 0', markerfacecolor='blue', markersize=8),
-        plt.Line2D([0], [0], marker='o', color='w', label='Clase 1', markerfacecolor='red', markersize=8),
+        plt.Line2D([0], [0], marker='o', color='w', label='Clase A', markerfacecolor='blue', markersize=8),
+        plt.Line2D([0], [0], marker='o', color='w', label='Clase B', markerfacecolor='red', markersize=8),
         plt.Line2D([0], [0], linestyle='-', color='green', label='Frontera'),
     ]
     ax.legend(handles=leyenda, loc='upper right', fontsize=8)
@@ -34,15 +35,21 @@ def crear_figura():
 #Creacion de los widgets
 def crear_widgets(fig):
     #Texto de clase
-    class0Text=ax.text(0.75, 0.6, "Click izquierdo:", transform=fig.transFigure, fontsize=10, color='black')
-    class0Text = ax.annotate(" Clase 0",xycoords=(class0Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='blue')
-    class1Text=ax.text(0.75, 0.5, "Click derecho:", transform=fig.transFigure, fontsize=10, color='black')
-    class1Text = ax.annotate(" Clase 1",xycoords=(class1Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='red')
+    class0Text=ax.text(0.75, 0.85, "Click izquierdo:", transform=fig.transFigure, fontsize=10, color='black')
+    class0Text = ax.annotate(" Clase A",xycoords=(class0Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='blue')
+    class1Text=ax.text(0.75, 0.75, "Click derecho:", transform=fig.transFigure, fontsize=10, color='black')
+    class1Text = ax.annotate(" Clase B",xycoords=(class1Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='red')
+    #Textbox
+    stopBox=widgets.TextBox(plt.axes([0.79, 0.65, 0.1, 0.05]), 'Stop:', initial="0.01")
+    #RaddioButton para elegir la funcion de activacion
+    radioAx=plt.axes([0.75, 0.45, 0.1, 0.1])
+    radioAx.set_title("Activación", fontsize=10)
+    radioActivation=widgets.RadioButtons(radioAx,('Sigmoid', 'Tanh', 'Step'))
     # Botones
-    plotButton=widgets.Button(plt.axes([0.75, 0.3, 0.1, 0.15]), 'Train', color='lightblue', hovercolor='skyblue')
-    clearButton=widgets.Button(plt.axes([0.75, 0.2, 0.1, 0.05]), 'Clear', color='lightcoral', hovercolor='salmon')
+    plotButton=widgets.Button(plt.axes([0.75, 0.25, 0.1, 0.15]), 'Train', color='lightblue', hovercolor='skyblue')
+    clearButton=widgets.Button(plt.axes([0.75, 0.15, 0.1, 0.05]), 'Clear', color='lightcoral', hovercolor='salmon')
     
-    return plotButton, clearButton
+    return plotButton, clearButton, stopBox, radioActivation
 
 #Evento para agregar puntos con el mouse
 puntos = []  # Lista para almacenar los puntos clickeados
@@ -70,6 +77,7 @@ def onclick(event):
 #Evento para limpiar los puntos
 def clear(event):
     stateText.set_text("")  # Limpia el texto de estado
+    errorText.set_text("")  # Limpia el texto de error
     for marker in markers:
         marker.remove()  # Elimina el punto de la figura
     for etiqueta in etiquetas:
@@ -88,16 +96,19 @@ def clear_line():
 
 #Funcion para ejecutar el entrenamiento
 def train(event):
+    stop=float(stopBox.text)  # Obtiene el valor de stop del TextBox
+    activacion=radioActivation.value_selected.lower()  # Obtiene la función de activación seleccionada
     x=np.array(puntos, dtype=float)
     d=np.array(etiquetas, dtype=int)
     if len(x) < 2:
         return
     
-    w,bias,historial = train_perceptron(x,d)
-    for epoch, w_epoca, b_epoca in historial:
+    historial, w, bias = adaline(x, d, activacion, stop)
+    for epoch, w_epoca, b_epoca, error_epoca in historial:
         clear_line()
         m,c,x_vertical=calcular(w_epoca[0], w_epoca[1], b_epoca)
         stateText.set_text(f'Epoch: {epoch}')
+        errorText.set_text(f'Error: {sum(error_epoca):.4f}')
 
         if x_vertical is not None:
             linea = ax.axvline(x=x_vertical, color='g', linewidth=1.5)
@@ -108,7 +119,7 @@ def train(event):
             linea, = ax.plot(x_vals, y_vals, 'g-', linewidth=1.5,)  # Dibuja la línea de decisión
             lineas.append(linea)
         fig.canvas.draw_idle()  # Actualiza la figura para mostrar los cambios
-        plt.pause(0.10)  # Pausa para visualizar el proceso de entrenamiento
+        plt.pause(0.15)  # Pausa para visualizar el proceso de entrenamiento
 
 #Funcion para calcular m y c
 def calcular(w0,w1,bias):
@@ -123,7 +134,7 @@ def calcular(w0,w1,bias):
 
 
 fig, ax = crear_figura()
-plotButton, clearButton = crear_widgets(fig)
+plotButton, clearButton, stopBox, radioActivation = crear_widgets(fig)
 fig.canvas.mpl_connect('button_press_event', onclick)
 clearButton.on_clicked(clear)
 plotButton.on_clicked(train)
