@@ -1,7 +1,7 @@
 import numpy as np
 
 ## Adaline
-def adaline(X,d,activacion,stop):
+def adaline(X,d,stop, max_epochs=200):
     #Inicializacion de pesos
     n_features=X.shape[1]
     bias=np.random.uniform(0,1)
@@ -14,7 +14,7 @@ def adaline(X,d,activacion,stop):
     history=[]
     Error=[stop+1]
     #Entrenamiento
-    while Error[-1] > stop:
+    while Error[-1] > stop and epoch <= max_epochs:
         error=[]
         for i in range(X.shape[0]):
             #Calculo de la salida
@@ -25,7 +25,7 @@ def adaline(X,d,activacion,stop):
             bias+=alpha*e
             #Calculo del error
             error.append(e**2)
-        Error.append(sum(error))
+        Error.append(sum(error) / X.shape[0])
         history.append((epoch,w.copy(),bias,error))
         epoch+=1
     
@@ -36,6 +36,10 @@ def adaline(X,d,activacion,stop):
 def funcion_activacion(activacion,z):
     if activacion == "sigmoid":
         return 1/(1+np.exp(-z))
+    elif activacion == "tanh":
+        return np.tanh(z)
+    elif activacion == "relu":
+        return np.maximum(0, z)
     elif activacion == "linear":
         return z
     else:

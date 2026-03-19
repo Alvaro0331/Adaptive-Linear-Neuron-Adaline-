@@ -23,13 +23,13 @@ def crear_figura():
     stateText = ax.text(0.02, 0.95, "", transform=ax.transAxes)
     errorText = ax.text(0.02, 0.90, "", transform=ax.transAxes)
     
-    #Leyenda
+    """ #Leyenda
     leyenda = [
         plt.Line2D([0], [0], marker='o', color='w', label='Clase A', markerfacecolor='blue', markersize=8),
         plt.Line2D([0], [0], marker='o', color='w', label='Clase B', markerfacecolor='red', markersize=8),
         plt.Line2D([0], [0], linestyle='-', color='green', label='Frontera'),
     ]
-    ax.legend(handles=leyenda, loc='upper right', fontsize=8)
+    ax.legend(handles=leyenda, loc='upper right', fontsize=8) """
     return fig, ax
 
 #Creacion de los widgets
@@ -39,21 +39,25 @@ def crear_widgets(fig):
     modeAx.set_title("Modo", fontsize=10)
     radioMode = widgets.RadioButtons(modeAx, ('Clasificacion', 'Regresion'))
     #Texto de clase
-    class0Text=ax.text(0.75, 0.85, "Click izquierdo:", transform=fig.transFigure, fontsize=10, color='black')
-    class0Text = ax.annotate(" Clase A",xycoords=(class0Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='blue')
-    class1Text=ax.text(0.75, 0.75, "Click derecho:", transform=fig.transFigure, fontsize=10, color='black')
-    class1Text = ax.annotate(" Clase B",xycoords=(class1Text),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='red')
+    c0Base=ax.text(0.75, 0.75, "Click izquierdo:", transform=fig.transFigure, fontsize=10, color='black')
+    c0Annot = ax.annotate(" Clase A",xycoords=(c0Base),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='blue')
+    c1Base=ax.text(0.75, 0.65, "Click derecho:", transform=fig.transFigure, fontsize=10, color='black')
+    c1Annot = ax.annotate(" Clase B",xycoords=(c1Base),xy=(1, 0), verticalalignment='bottom', fontsize=10, color='red')
+    clasif_text = [c0Base, c0Annot, c1Base, c1Annot]
+    #Texto de regresion
+    reg_text = ax.text(0.75, 0.75, "Click para agregar puntos", 
+                       transform=fig.transFigure, fontsize=12, color='black',visible=False)
     #Textbox
-    stopBox=widgets.TextBox(plt.axes([0.79, 0.65, 0.1, 0.05]), 'Stop:', initial="0.01")
+    stopBox=widgets.TextBox(plt.axes([0.79, 0.55, 0.1, 0.05]), 'Stop:', initial="0.01")
     #RaddioButton para elegir la funcion de activacion
-    radioAx=plt.axes([0.75, 0.45, 0.1, 0.1])
+    radioAx=plt.axes([0.75, 0.35, 0.1, 0.15])
     radioAx.set_title("Activación", fontsize=10)
-    radioActivation=widgets.RadioButtons(radioAx,('Sigmoid', 'Tanh', 'Step'))
+    radioActivation=widgets.RadioButtons(radioAx,('Step', 'Sigmoid', 'Tanh', 'ReLU'))
     # Botones
-    plotButton=widgets.Button(plt.axes([0.75, 0.25, 0.1, 0.15]), 'Train', color='lightblue', hovercolor='skyblue')
-    clearButton=widgets.Button(plt.axes([0.75, 0.15, 0.1, 0.05]), 'Clear', color='lightcoral', hovercolor='salmon')
+    plotButton=widgets.Button(plt.axes([0.75, 0.16, 0.1, 0.15]), 'Train', color='lightblue', hovercolor='skyblue')
+    clearButton=widgets.Button(plt.axes([0.75, 0.10, 0.1, 0.05]), 'Clear', color='lightcoral', hovercolor='salmon')
     
-    return plotButton, clearButton, stopBox, radioActivation, radioMode
+    return plotButton, clearButton, stopBox, radioActivation, radioMode, clasif_text, reg_text
 
 #Evento para agregar puntos con el mouse
 puntos = []  # Lista para almacenar los puntos clickeados
@@ -80,7 +84,7 @@ def onclick(event):
             marker, = ax.plot(x, y, 'ro')  # Dibuja un punto rojo en la posición clickeada
             puntos.append((x, y))  # Agrega el punto a la lista de puntos
             markers.append(marker)  # Agrega el objeto del punto a la lista de markers
-            etiquetas.append(0)  # Agrega la etiqueta correspondiente a la lista de etiquetas
+            etiquetas.append(-1)  # Agrega la etiqueta correspondiente a la lista de etiquetas
             fig.canvas.draw()  # Actualiza la figura para mostrar el nuevo punto
 
 
@@ -98,11 +102,12 @@ def clear(event):
     clear_line()  # Limpia la línea de decisión
 
 #Funcion para limpiar la linea
-def clear_line():
+def clear_line(redraw=True):
     for linea in lineas:
         linea.remove()  # Elimina la línea de la figura
     lineas.clear()  # Reinicia la lista de líneas
-    fig.canvas.draw()  # Actualiza la figura para reflejar los cambios
+    if redraw:
+        fig.canvas.draw()  # Actualiza la figura para reflejar los cambios
 
 #Funcion para ejecutar el entrenamiento
 def train(event):
@@ -111,28 +116,27 @@ def train(event):
     activacion=radioActivation.value_selected.lower()  # Obtiene la función de activación seleccionada
     if modo == 'Regresion':
         x=np.array([[p[0]] for p in puntos], dtype=float)  # Convierte la lista de puntos a un array de numpy
-        d=np.array(etiquetas, dtype=int)
-        activacion = 'linear'  # Para regresión lineal, se utiliza la función de activación lineal
+        d=np.array(etiquetas, dtype=float)
     else:
         x=np.array(puntos, dtype=float)  # Convierte la lista de puntos a un array de numpy
-        d=np.array(etiquetas, dtype=int)
+        d=np.array(etiquetas, dtype=float)
     if len(x) < 2:
         return
 
-    historial, w, bias = adaline(x, d, activacion, stop)
+    historial, w, bias = adaline(x, d, stop)
     for epoch, w_epoca, b_epoca, error_epoca in historial:
-        clear_line()
+        clear_line(redraw=False)
         stateText.set_text(f'Epoch: {epoch}')
-        errorText.set_text(f'Error: {sum(error_epoca):.4f}')
+        errorText.set_text(f'Error: {sum(error_epoca)/len(error_epoca):.4f}')
         dibujar_resultados(w_epoca, b_epoca, modo)
         fig.canvas.draw_idle()  # Actualiza la figura para mostrar los cambios
-        plt.pause(0.15)  # Pausa para visualizar el proceso de entrenamiento
+        plt.pause(0.05)  # Pausa para visualizar el proceso de entrenamiento
 
 def calcular(w0,w1,bias):
     if np.isclose(w1, 0.0):
         if np.isclose(w0, 0.0):
             return None, None, None
-        x_vertical = -bias / w0
+        x_vertical = -bias/ w0
         return None, None, x_vertical
     m = -w0 / w1
     c = -bias / w1
@@ -154,10 +158,25 @@ def dibujar_resultados(W,bias, modo):
             linea, = ax.plot(x_vals, y_vals, 'g-', linewidth=1.5)
             lineas.append(linea)
 
+def on_mode_change(label):
+    is_regresion = label == 'Regresion'
+    for t in clasif_text:
+        t.set_visible(not is_regresion)
+    reg_text.set_visible(is_regresion)
+    radioActivation.ax.set_visible(not is_regresion)
+    for collection in radioActivation.ax.collections:
+        collection.set_visible(not is_regresion)
+    clear(None)  # Limpia los puntos y la línea al cambiar de modo
+    """ puntos.clear()
+    markers.clear()
+    etiquetas.clear()
+    clear_line() """
+    fig.canvas.draw_idle()
 
 fig, ax = crear_figura()
-plotButton, clearButton, stopBox, radioActivation, radioMode = crear_widgets(fig)
+plotButton, clearButton, stopBox, radioActivation, radioMode, clasif_text, reg_text = crear_widgets(fig)
 fig.canvas.mpl_connect('button_press_event', onclick)
 clearButton.on_clicked(clear)
 plotButton.on_clicked(train)
+radioMode.on_clicked(on_mode_change)
 plt.show()
