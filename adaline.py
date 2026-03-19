@@ -2,9 +2,6 @@ import numpy as np
 
 ## Adaline
 def adaline(X,d,activacion,stop):
-    #Adaptar datos a la funcion de activacion
-    if activacion=="tanh":
-        d=np.where(d==0,-1,1)
     #Inicializacion de pesos
     n_features=X.shape[1]
     bias=np.random.uniform(0,1)
@@ -22,12 +19,12 @@ def adaline(X,d,activacion,stop):
         for i in range(X.shape[0]):
             #Calculo de la salida
             z=np.dot(w,X[i])+bias
-            y_pred=funcion_activacion(activacion,z)
             #Actualizacion de pesos y bias
-            w+=alpha*(d[i]-y_pred)*X[i]
-            bias+=alpha*(d[i]-y_pred)
+            e=d[i]-z
+            w+=alpha*e*X[i]
+            bias+=alpha*e
             #Calculo del error
-            error.append((d[i]-y_pred)**2)
+            error.append(e**2)
         Error.append(sum(error))
         history.append((epoch,w.copy(),bias,error))
         epoch+=1
@@ -39,8 +36,8 @@ def adaline(X,d,activacion,stop):
 def funcion_activacion(activacion,z):
     if activacion == "sigmoid":
         return 1/(1+np.exp(-z))
-    elif activacion == "tanh":
-        return np.tanh(z)
+    elif activacion == "linear":
+        return z
     else:
         return int(z>=0)
 
